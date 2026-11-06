@@ -222,6 +222,10 @@ export default function BattleView({
           if (error) setSaveError(`DB 저장 실패: ${error.message}`);
         }
         setDefeatInfo({ lost, from: s.level, to: stats.current.level });
+        // 부활: 쓰러진 뒤에는 HP 가 가득 찬 채로 부활한다. (이번 화면에는 쓰러진 모습을 보여 주고, 세션·DB 에는 만피로 저장)
+        hpRef.current = PLAYER_MAX_HP;
+        saveSession({ ...user, ...stats.current, hp: PLAYER_MAX_HP });
+        void saveHp({ ...user, ...stats.current }, PLAYER_MAX_HP);
         // 상단 전광판 '패배' 알림: 전공 · 닉네임 · 쓰러뜨린 몬스터 · 레벨 하락 여부
         const monsterName = shadow ? `${shadow.nickname}의 환영` : (q.monsterName ?? m.name);
         void postEvent("defeat", user, stats.current.level, { detail: monsterName, levelDrop: drop });
