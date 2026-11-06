@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { Check, Flame, Ghost, LogOut, Skull, Sparkles, X, type LucideIcon } from "lucide-react";
 import PixelSprite from "@/components/PixelSprite";
-import { randomMonsterImage } from "@/lib/monsterImages";
+import { randomMonsterSequence } from "@/lib/monsterImages";
 import { CLASS_BY_MAJOR } from "@/lib/majors";
 import type { Major } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
@@ -81,8 +81,8 @@ export default function BattleView({
   shadow?: { nickname: string; major: Major } | null;
 }) {
   const m = MONSTER[mode];
-  const [monsterImg] = useState(randomMonsterImage); // 전투마다 무작위 몬스터 (그림자 토벌은 친구의 전공 캐릭터)
-  const monsterSrc = shadow ? CLASS_BY_MAJOR[shadow.major].image : monsterImg;
+  // 문제 1개당 몬스터 1마리: 문제마다 다른 무작위 몬스터 (그림자 토벌은 친구의 전공 캐릭터)
+  const [monsterImgs] = useState(() => randomMonsterSequence(questions.length));
   const monsterColor = shadow ? "#94a3b8" : m.color;
   const total = questions.length;
   // 모든 문제를 맞히지 않아도(약 80%) 처치 가능
@@ -122,6 +122,8 @@ export default function BattleView({
   }, []);
 
   const q = questions[idx];
+  const monsterSrc = shadow ? CLASS_BY_MAJOR[shadow.major].image : monsterImgs[idx];
+  const slain = result?.correct === true; // 이 문제의 몬스터는 정답을 맞히면 쓰러진다
 
   // ── 보스 레이드 제한 시간 (문제마다 OX·객관식 10초 / 단답형 30초 / 서술형 60초) ──
   const limitMs = BOSS_TIME_LIMIT[q.type] * 1000;
@@ -376,8 +378,10 @@ export default function BattleView({
       {/* 몬스터 */}
       <div className="flex shrink-0 items-center gap-4">
         <div className="relative w-28 shrink-0">
-          <motion.div animate={controls} initial={{ opacity: hp <= 0 ? 0.3 : 1 }}>
+          <motion.div key={idx} animate={controls}>
+            <div className={`transition-all duration-500 ${slain ? "opacity-30 grayscale" : ""}`}>
             <PixelSprite src={monsterSrc} alt={shadow ? "그림자" : "몬스터"} color={monsterColor} className="rounded-xl" imgClassName={shadow ? "opacity-70 brightness-50 grayscale" : ""} />
+            </div>
           </motion.div>
           <AnimatePresence>
             {hit && (
@@ -407,11 +411,11 @@ export default function BattleView({
           <div className="h-4 overflow-hidden rounded-full bg-slate-800">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-red-600 to-rose-400"
-              animate={{ width: `${hp}%` }}
+              animate={{ width: slain ? "0%" : "100%" }}
               transition={{ duration: 0.6, ease: "easeOut" }}
             />
           </div>
-          <p className="font-pixel-num mt-1 text-right text-[10px] text-slate-500">HP {hp}%</p>
+          <p className="font-pixel-num mt-1 text-right text-[10px] text-slate-500">HP {slain ? 0 : 100}%</p>
         </div>
       </div>
 
