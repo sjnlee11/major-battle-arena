@@ -1,0 +1,151 @@
+/* 외부 웹 폰트 (@import 는 다른 규칙보다 먼저 와야 한다) */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+@import url("https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css");
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+@import "tailwindcss";
+
+/* 네오둥근모 Pro: 눈누 CDN */
+@font-face {
+  font-family: "NeoDunggeunmoPro";
+  src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/NeoDunggeunmoPro-Regular.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme inline {
+  --font-sans: "Pretendard", var(--font-geist-sans), "Malgun Gothic", sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+/* 픽셀 폰트 유틸리티: 타이틀 / UI / 수치 */
+.font-pixel-title {
+  font-family: "NeoDunggeunmoPro", "Galmuri11", "Pretendard", sans-serif;
+}
+.font-pixel-ui {
+  font-family: "Galmuri11", "Pretendard", sans-serif;
+}
+.font-pixel-num {
+  font-family: "Press Start 2P", "Galmuri11", monospace;
+  letter-spacing: -0.05em;
+  line-height: 1.2;
+}
+
+/* 모든 스크롤 바 숨김: 스크롤(휠/터치/키보드)은 그대로 동작한다 */
+* {
+  scrollbar-width: none; /* Firefox, 최신 Chrome/Edge */
+  -ms-overflow-style: none; /* 구형 Edge/IE */
+}
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+/* 개별 요소용 (전역 규칙과 동일, 기존 코드 호환) */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+body {
+  background: #0b091e; /* CyberpunkBackground 가 로드되기 전/실패 시의 기본 밤하늘 색 */
+  color: #f1f5f9;
+}
+
+/* ───────── CRT 스캔라인: 아케이드 모니터 느낌 (클릭은 통과) ───────── */
+.crt-scanlines::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.15) 0,
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+}
+
+/* ───────── 네온 간판 패널 ─────────
+   - 모서리가 깎인 픽셀 프레임: 4방향 2px box-shadow (모서리 칸이 비어 계단처럼 보임)
+   - 이중 네온 글로우 + 안쪽 글로우
+   - 좌측 세로 네온 블록(빌딩 간판 느낌)은 배경 이미지로 그려서 스크롤해도 따라가지 않는다
+   색은 --neon 변수로 바꾼다 (.neon-cyan / -magenta / -purple / -amber) */
+.neon-panel {
+  --neon: #00f5d4;
+  position: relative;
+  border-radius: 0;
+  background-color: rgb(18 13 38 / 0.85);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  background-image:
+    linear-gradient(var(--neon), var(--neon)),
+    linear-gradient(var(--neon), var(--neon)),
+    linear-gradient(#ff007f, #ff007f),
+    linear-gradient(#fbbf24, #fbbf24);
+  background-repeat: no-repeat;
+  background-size: 4px 30px, 4px 12px, 4px 6px, 4px 6px;
+  background-position: 6px 12px, 6px 48px, 6px 66px, 6px 78px;
+  box-shadow:
+    -2px 0 0 0 var(--neon),
+    2px 0 0 0 var(--neon),
+    0 -2px 0 0 var(--neon),
+    0 2px 0 0 var(--neon),
+    0 0 12px 1px color-mix(in srgb, var(--neon) 75%, transparent),
+    0 0 34px 2px color-mix(in srgb, var(--neon) 35%, transparent),
+    inset 0 0 22px color-mix(in srgb, var(--neon) 16%, transparent);
+}
+.neon-cyan {
+  --neon: #00f5d4;
+}
+.neon-magenta {
+  --neon: #ff007f;
+}
+.neon-purple {
+  --neon: #a855f7;
+}
+.neon-amber {
+  --neon: #fbbf24;
+}
+
+/* ───────── 배경 애니메이션 ───────── */
+@keyframes pixel-twinkle {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes neon-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+  52% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pixel-star,
+  .neon-flicker {
+    animation: none !important;
+  }
+}
+.pixel-star {
+  position: absolute;
+  animation: pixel-twinkle 2.4s steps(4, end) infinite;
+}
+.neon-flicker {
+  animation: neon-flicker 5s linear infinite;
+}
