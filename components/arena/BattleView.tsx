@@ -71,6 +71,7 @@ export default function BattleView({
   onExit,
   onRetry,
   shadow = null,
+  sample = false,
 }: {
   user: SessionUser;
   mode: BattleMode;
@@ -79,6 +80,8 @@ export default function BattleView({
   onRetry: () => void;
   /** 친구의 그림자 토벌: 몬스터를 '친구 닉네임의 환영'으로 표시 (보상/규칙은 보스 레이드와 동일) */
   shadow?: { nickname: string; major: Major } | null;
+  /** 내장 샘플(Mock) 문제 은행으로 시작한 훈련인지 (AI 미사용 표시용) */
+  sample?: boolean;
 }) {
   const m = MONSTER[mode];
   // 문제 1개당 몬스터 1마리: 문제마다 다른 무작위 몬스터 (그림자 토벌은 친구의 전공 캐릭터)
@@ -357,6 +360,14 @@ export default function BattleView({
         <span className="font-bold" style={{ color: m.color }}>
           {shadow ? "그림자 토벌" : m.label} · 문제 {idx + 1}/{total}
         </span>
+        {mode === "training" && (
+          <span
+            className={`font-pixel-ui rounded px-1.5 py-0.5 text-[10px] ${sample ? "bg-amber-400/20 text-amber-300" : "bg-cyan-400/15 text-cyan-300"}`}
+            title={sample ? "내장 문제 은행(Mock) — AI 미사용" : "강의자료 기반으로 LLM이 생성한 문제"}
+          >
+            {sample ? "샘플 문제 · AI 미사용" : "AI 생성 문제"}
+          </span>
+        )}
         {boosted && <span className="rounded bg-yellow-400/20 px-1.5 py-0.5 text-[10px] font-bold text-yellow-300">EXP x2</span>}
         <button onClick={onExit} className="font-pixel-ui ml-auto flex items-center gap-1 rounded-md px-2 py-1 hover:bg-white/10">
           <LogOut className="h-3.5 w-3.5" /> 도망치기

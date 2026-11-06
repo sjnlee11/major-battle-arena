@@ -82,9 +82,13 @@ function Body({
             </option>
           ))}
         </select>
-        <p className="mt-1.5 text-[11px] text-slate-500">
-          {materialId ? "선택한 자료로 AI가 문제와 몬스터를 생성합니다." : "자료를 선택하면 AI가 맞춤 문제를 만들어 줍니다."}
-        </p>
+        {materialId ? (
+          <p className="mt-1.5 text-[11px] text-cyan-300">🤖 선택한 자료로 AI(LLM)가 문제와 몬스터를 생성합니다.</p>
+        ) : (
+          <p className="mt-1.5 text-[11px] text-amber-300">
+            ⚠ 샘플(Mock) 문제: 앱에 내장된 문제 은행이며 AI를 사용하지 않습니다. 강의자료를 선택하면 AI가 맞춤 문제를 만들어 줍니다.
+          </p>
+        )}
       </div>
 
       <div>

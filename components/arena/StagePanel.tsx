@@ -225,6 +225,7 @@ export default function StagePanel({ user }: { user: SessionUser }) {
           onExit={exitBattle}
           onRetry={() => void (battle.shadow ? launchShadow(battle.shadow, true) : launch(battle.mode, battle.cfg))}
           shadow={battle.shadow ?? null}
+          sample={battle.mode === "training" && !!battle.cfg && !battle.cfg.materialId}
         />
       ) : (
         <>
