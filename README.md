@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⚔️ AI 전공 배틀 아레나
 
-## Getting Started
+> 강의자료를 올리면 AI가 퀴즈를 내고, 공부가 곧 전투가 되는 **RPG형 AI 학습 지원 서비스**
 
-First, run the development server:
+해커톤 출품작 · 주제: **AI 학습 기반 학습 지원 서비스**
 
+발표 자료: [`docs/AI전공배틀아레나_발표자료.pdf`](docs/AI전공배틀아레나_발표자료.pdf)
+
+## 타겟 사용자
+공부를 재미있게 하고 싶은 대학생 누구나 (인문·사회·교육·자연·공학·예체능·의약 전 전공 계열)
+
+## 해결하려는 문제
+기존 AI 서비스로 공부하면 **단순 자료 요약과 단순 퀴즈 생성**만 가능하고, 틀린 문제를 반복해서 풀려면 **매번 프롬프트를 다시 입력**해야 합니다. 무엇보다 **지루합니다.**
+
+## 어떻게 풀었나
+`강의자료 업로드 → AI 출제 → 전투(풀이·AI 채점) → 오답 자동 저장 → 재도전 → AI 약점 분석` 의 학습 루프를 게임 하나에 담았습니다.
+
+| 기능 | 설명 |
+|---|---|
+| 📜 마도서 연성 | PDF·TXT·DOCX 업로드(또는 텍스트 붙여넣기) 후 문제 소스로 저장 |
+| 🤖 AI 출제·채점 | 난이도·유형(OX/객관식/단답/서술형)·문항 수를 고르면 자동 출제, 서술형은 AI 채점·첨삭 |
+| ⚔️ 3가지 전투 모드 | 훈련 · 오답 던전(틀린 문제 자동 재출제) · 보스 레이드(고난도+빈출 오답, 시간제한) |
+| 🔮 AI 전술 조언 | 패배 시 오답을 분석해 약점 진단 · 핵심 공략법 · 반격 루트를 전공별 NPC 말투로 브리핑 |
+| 🧙 전공별 직업 | 7개 전공 = 7개 직업 캐릭터 (크로니클 디코더, 마인드 브로커, 뉴럴 멘토, 퀀텀 채널러, 테크노맨서, 네온 마에스트로, 바이오 해커) |
+| 📈 성장·상점 | EXP · 레벨 · Gold · HP, 회복/힌트/EXP 부스터 아이템, 치장 아이템 |
+| 🤝 함께 하는 학습 | 실시간 랭킹, 친구, 전공별 채팅·귓속말, 도전장(PvP), 친구 오답으로 싸우는 그림자 토벌 |
+
+## 기술 스택
+Next.js (App Router) · React · Tailwind CSS · Framer Motion · Supabase (DB + Realtime) · LLM API (Anthropic / OpenAI / Gemini 중 선택)
+
+## 실행 방법
+
+### 1. 설치
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. 환경 변수
+`.env.example` 을 `.env.local` 로 복사한 뒤 값을 채웁니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| 변수 | 설명 |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon(publishable) 키 |
+| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GEMINI_API_KEY` | LLM 키 (하나 이상, 서버 전용) |
+| `LLM_PROVIDER`, `LLM_MODEL` | (선택) 사용할 제공자·모델 지정 |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. 데이터베이스
+Supabase 대시보드의 **SQL Editor**에서 `supabase/schema.sql` 을 먼저 실행하고, 이어서 `supabase/002_...sql` ~ `015_...sql` 을 번호 순서대로 실행합니다.
 
-## Learn More
+### 4. 실행
+```bash
+npm run dev      # http://localhost:3000
+```
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 참고
+- 해커톤 프로토타입이라 간편 비밀번호(평문)와 느슨한 RLS 정책을 사용합니다. **실서비스에는 적합하지 않습니다.**
+- 캐릭터·몬스터 이미지는 `public/images/` 의 도트 이미지입니다.
