@@ -2,6 +2,9 @@ import { callLLM, LLMNotConfiguredError, parseJSON } from "@/lib/server/llm";
 import { allow, clientIp } from "@/lib/server/rateLimit";
 import { AI_MAX_CHARS, MAX_MONSTERS_PER_MAJOR, type Difficulty, type QType, type Question } from "@/lib/quiz";
 
+/** 서버리스 함수 최대 실행 시간(초): LLM 출제는 오래 걸릴 수 있다 */
+export const maxDuration = 60;
+
 const TYPE_LABEL: Record<QType, string> = { ox: "OX", mcq: "객관식", short: "단답형", essay: "서술형" };
 const TYPE_FROM_LABEL: Record<string, QType> = {
   OX: "ox", ox: "ox", 객관식: "mcq", mcq: "mcq", 단답형: "short", 주관식: "short", short: "short", 서술형: "essay", essay: "essay",

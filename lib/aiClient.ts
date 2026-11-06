@@ -1,14 +1,40 @@
 import type { Difficulty, QType, Question } from "./quiz";
 
-async function post<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as { error?: string }).error ?? `요청 실패 (${res.status})`);
-  return data as T;
+/** 상태 코드별 기본 안내 (서버가 error 문구를 주지 않았을 때) */
+function statusMessage(status: number): string {
+  if (status === 429) return "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.";
+  if (status === 503) return "AI 서비스가 아직 준비되지 않았습니다. (API 키 설정을 확인해 주세요)";
+  if (status === 504 || status === 408) return "AI 응답이 너무 오래 걸립니다. 문제 수를 줄이거나 잠시 후 다시 시도해 주세요.";
+  if (status >= 500) return `서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요. (${status})`;
+  return `요청 실패 (${status})`;
+}
+
+/**
+ * 공통 POST. timeoutMs 안에 응답이 없으면 중단하고, 네트워크/시간 초과/서버 오류를
+ * 사용자가 이해할 수 있는 한국어 메시지로 바꿔 던진다.
+ */
+async function post<T>(url: string, body: unknown, timeoutMs = 60_000): Promise<T> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error((data as { error?: string }).error ?? statusMessage(res.status));
+    return data as T;
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new Error(`AI 응답이 ${Math.round(timeoutMs / 1000)}초 안에 오지 않았습니다. 잠시 후 다시 시도해 주세요. (문제 수를 줄이면 더 빨라요)`);
+    }
+    if (e instanceof TypeError) throw new Error("네트워크에 연결할 수 없습니다. 인터넷 연결을 확인하고 다시 시도해 주세요.");
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -30,14 +56,14 @@ export function generateQuiz(
     count,
     monsterPool,
     maxNew,
-  });
+  }, 90_000);
 }
 
 export function gradeWithAI(q: Question, userAnswer: string) {
   return post<{ pass: boolean; score: number | null; feedback: string; source: "instant" | "ai" }>("/api/grade-quiz", {
     question: { type: q.type, prompt: q.prompt, answer: q.answer, accepts: q.accepts },
     userAnswer,
-  });
+  }, 30_000);
 }
 
 export interface WrongItem {
@@ -63,7 +89,7 @@ export function analyzeWeakness(major: string, wrongs: WrongItem[]): Promise<Wea
   const key = JSON.stringify([major, wrongs]);
   const hit = analysisCache.get(key);
   if (hit) return hit;
-  const p = post<WeaknessAnalysis>("/api/analyze-weakness", { major, wrongs });
+  const p = post<WeaknessAnalysis>("/api/analyze-weakness", { major, wrongs }, 60_000);
   analysisCache.set(key, p);
   p.catch(() => analysisCache.delete(key));
   return p;
@@ -77,7 +103,13 @@ export function resetAnalysis(major: string, wrongs: WrongItem[]) {
 export async function extractText(file: File): Promise<{ text: string; chars: number; pages?: number; truncated: boolean }> {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch("/api/extract-text", { method: "POST", body: form });
+  let res: Response;
+  try {
+    res = await fetch("/api/extract-text", { method: "POST", body: form, signal: AbortSignal.timeout(60_000) });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "TimeoutError") throw new Error("파일 처리에 시간이 너무 오래 걸립니다. 더 작은 파일로 다시 시도해 주세요.");
+    throw new Error("네트워크에 연결할 수 없습니다. 인터넷 연결을 확인하고 다시 시도해 주세요.");
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as { error?: string }).error ?? `텍스트 추출 실패 (${res.status})`);
   return data;

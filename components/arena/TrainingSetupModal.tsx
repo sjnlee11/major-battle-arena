@@ -129,13 +129,19 @@ function Body({
         )}
       </div>
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && (
+        <p role="alert" className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs leading-relaxed text-red-300">
+          ⚠ {error}
+          <span className="mt-1 block text-slate-400">아래 [다시 시도] 버튼으로 다시 요청할 수 있어요. 계속 실패하면 문제 수를 줄이거나 샘플 문제로 먼저 체험해 보세요.</span>
+        </p>
+      )}
+      {busy && materialId && <p className="text-[11px] text-slate-400">자료 길이와 문제 수에 따라 최대 1분 정도 걸릴 수 있어요. 창을 닫지 말고 기다려 주세요.</p>}
       <button
         onClick={() => onStart({ difficulty, types, count, materialId: materialId || null })}
         disabled={types.length === 0 || busy}
         className="w-full rounded-lg bg-cyan-500 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
       >
-        {busy ? (materialId ? "AI가 문제를 생성하는 중..." : "전장 준비 중...") : "전투 시작"}
+        {busy ? (materialId ? "AI가 문제를 생성하는 중..." : "전장 준비 중...") : error ? "다시 시도" : "전투 시작"}
       </button>
     </div>
   );

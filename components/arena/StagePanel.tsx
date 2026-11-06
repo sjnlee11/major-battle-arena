@@ -92,6 +92,7 @@ export default function StagePanel({ user }: { user: SessionUser }) {
     if (!f) return;
     const ext = "." + (f.name.split(".").pop() ?? "").toLowerCase();
     if (!ACCEPT.split(",").includes(ext)) return setErr(`지원 형식: ${ACCEPT} (그 외 자료는 텍스트를 붙여넣어 주세요)`);
+    if (f.size === 0) return setErr("빈 파일입니다. 내용이 있는 파일을 선택해 주세요.");
     if (f.size > MAX_MB * 1024 * 1024) return setErr(`파일은 ${MAX_MB}MB 이하여야 합니다.`);
     setErr(null);
     setUploading(true);
@@ -282,7 +283,7 @@ export default function StagePanel({ user }: { user: SessionUser }) {
             )}
           </div>
           <div className="-mt-2 flex items-center justify-between gap-2">
-            <p className="min-w-0 truncate text-xs text-red-400">{err}</p>
+            <p role="alert" className="min-w-0 text-xs leading-relaxed text-red-400">{err}</p>
             <button
               onClick={() => {
                 setPasteErr(null);

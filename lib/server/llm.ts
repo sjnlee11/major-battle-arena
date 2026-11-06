@@ -39,6 +39,16 @@ export async function callLLM(opts: { system: string; user: string; maxTokens?: 
     return await callProvider(opts);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    const status = (e as { status?: number }).status;
+    if (status === 401 || status === 403 && !/model/i.test(msg)) {
+      throw new Error("AI 서비스 인증에 실패했습니다. API 키가 올바른지 확인해 주세요.");
+    }
+    if (status === 429) {
+      throw new Error("AI 사용량 한도를 초과했습니다. 잠시 후 다시 시도하거나 API 요금제/한도를 확인해 주세요.");
+    }
+    if (/timed? ?out|timeout|ETIMEDOUT|ECONNRESET|APIConnectionError|fetch failed/i.test(msg) || (e as { name?: string }).name === "APIConnectionTimeoutError") {
+      throw new Error("AI 서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.");
+    }
     // 모델 접근 권한/이름 문제는 해결 방법을 함께 안내
     if (/does not have access to model|model_not_found|model .* not found|not found.*model|is not supported/i.test(msg)) {
       throw new Error(`${msg} → .env.local 의 LLM_MODEL 을 이 API 키로 사용할 수 있는 모델로 지정하세요.`);
@@ -52,7 +62,7 @@ async function callProvider(opts: { system: string; user: string; maxTokens?: nu
   const maxTokens = opts.maxTokens ?? 8000;
 
   if (provider === "anthropic") {
-    const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey, timeout: 50_000, maxRetries: 1 });
     // effort 는 Claude 5 계열 모델에서만 지원 (출제/채점은 깊은 추론이 필요 없어 low)
     const supportsEffort = /^claude-(opus-5|sonnet-5|haiku-5|fable)/.test(model);
     const res = await client.messages.create({
@@ -68,7 +78,7 @@ async function callProvider(opts: { system: string; user: string; maxTokens?: nu
   }
 
   if (provider === "openai") {
-    const client = new OpenAI({ apiKey });
+    const client = new OpenAI({ apiKey, timeout: 50_000, maxRetries: 1 });
     const res = await client.chat.completions.create({
       model,
       max_completion_tokens: maxTokens,
