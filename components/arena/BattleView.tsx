@@ -225,10 +225,6 @@ export default function BattleView({
           if (error) setSaveError(`DB 저장 실패: ${error.message}`);
         }
         setDefeatInfo({ lost, from: s.level, to: stats.current.level });
-        // 부활: 쓰러진 뒤에는 HP 가 가득 찬 채로 부활한다. (이번 화면에는 쓰러진 모습을 보여 주고, 세션·DB 에는 만피로 저장)
-        hpRef.current = PLAYER_MAX_HP;
-        saveSession({ ...user, ...stats.current, hp: PLAYER_MAX_HP });
-        void saveHp({ ...user, ...stats.current }, PLAYER_MAX_HP);
         // 상단 전광판 '패배' 알림: 전공 · 닉네임 · 쓰러뜨린 몬스터 · 레벨 하락 여부
         const monsterName = shadow ? `${shadow.nickname}의 환영` : (q.monsterName ?? m.name);
         void postEvent("defeat", user, stats.current.level, { detail: monsterName, levelDrop: drop });
@@ -241,6 +237,8 @@ export default function BattleView({
           setSaveError(`오답 저장 실패: ${e instanceof Error ? e.message : String(e)}`);
         }
       }
+      // 사망: 남은 문제를 풀지 않고 즉시 전투를 종료하고 결과 창을 띄운다.
+      if (newHp === 0) finishBattle();
       return;
     }
 
@@ -292,6 +290,14 @@ export default function BattleView({
   useEffect(() => {
     submitRef.current = submit; // 타이머 콜백이 항상 최신 상태의 submit 을 호출하도록
   });
+
+  // 부활: 사망 결과 창이 뜬 뒤에 HP 를 가득 채운다 (화면·세션·DB 모두 반영)
+  useEffect(() => {
+    if (!finished || !defeatInfo) return;
+    hpRef.current = PLAYER_MAX_HP;
+    void saveHp({ ...user, ...stats.current }, PLAYER_MAX_HP);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished, defeatInfo]);
 
   /** 인벤토리 소비 아이템 사용: DB 수량 차감 성공 후 효과 적용 */
   async function activateItem(id: string) {
@@ -350,6 +356,8 @@ export default function BattleView({
     setHit(null);
   }
 
+  const revived = finished && defeatInfo !== null; // 사망 결과 창이 뜬 뒤에는 HP 가 가득 찬 채로 부활
+  const shownHp = revived ? PLAYER_MAX_HP : playerHp;
   const victory = hp <= 0;
   const defeated = !victory && defeatInfo !== null;
 
@@ -514,13 +522,13 @@ export default function BattleView({
             <div className="mb-1 flex items-baseline justify-between text-[11px]">
               <span className="font-pixel-ui text-emerald-300">내 HP</span>
               <span className="font-pixel-num text-[10px] text-slate-400">
-                {playerHp} / {PLAYER_MAX_HP}
+                {shownHp} / {PLAYER_MAX_HP}
               </span>
             </div>
             <div className="h-3 overflow-hidden rounded-full bg-slate-800">
               <motion.div
                 className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-lime-300"
-                animate={{ width: `${(playerHp / PLAYER_MAX_HP) * 100}%` }}
+                animate={{ width: `${(shownHp / PLAYER_MAX_HP) * 100}%` }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
               />
             </div>
