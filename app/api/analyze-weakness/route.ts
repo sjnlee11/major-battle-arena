@@ -1,5 +1,6 @@
 import { callLLM, LLMNotConfiguredError, parseJSON } from "@/lib/server/llm";
 import { allow, clientIp } from "@/lib/server/rateLimit";
+import { consumeDemoAi } from "@/lib/server/demo";
 
 interface Persona {
   title: string; // 전공별 NPC 호칭 (서버가 고정값으로 보장)
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." }, { status: 429 });
   }
 
-  let body: { major?: unknown; wrongs?: unknown };
+  let body: { major?: unknown; wrongs?: unknown; userId?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -110,6 +111,10 @@ export async function POST(req: Request) {
     .filter((w) => w.question);
   if (wrongs.length === 0) return Response.json({ error: "분석할 틀린 문제가 없습니다." }, { status: 400 });
 
+  // 데모 모드: 계정당 AI 호출 한도
+  const demo = await consumeDemoAi(body.userId);
+  if (demo.block) return demo.block;
+
   const user = `유저 전공 계열: ${major}
 틀린 문제 수: ${wrongs.length}
 
@@ -126,6 +131,7 @@ ${JSON.stringify(wrongs, null, 1)}
     const strategy = toLines(r.core_strategy);
     const route = clip(r.counter_route, 300);
     if (!quoteRaw || !critical || strategy.length === 0 || !route) {
+      await demo.refund();
       return Response.json({ error: "AI 응답 형식이 올바르지 않습니다. 다시 시도해 주세요." }, { status: 502 });
     }
 
@@ -138,6 +144,7 @@ ${JSON.stringify(wrongs, null, 1)}
       counter_route: route,
     });
   } catch (e) {
+    await demo.refund();
     if (e instanceof LLMNotConfiguredError) return Response.json({ error: e.message }, { status: 503 });
     return Response.json({ error: `AI 분석 실패: ${e instanceof Error ? e.message : String(e)}` }, { status: 502 });
   }

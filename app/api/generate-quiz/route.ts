@@ -1,5 +1,6 @@
 import { callLLM, LLMNotConfiguredError, parseJSON } from "@/lib/server/llm";
 import { allow, clientIp } from "@/lib/server/rateLimit";
+import { consumeDemoAi } from "@/lib/server/demo";
 import { AI_MAX_CHARS, MAX_MONSTERS_PER_MAJOR, type Difficulty, type QType, type Question } from "@/lib/quiz";
 
 /** 서버리스 함수 최대 실행 시간(초): LLM 출제는 오래 걸릴 수 있다 */
@@ -96,7 +97,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." }, { status: 429 });
   }
 
-  let body: { content?: unknown; difficulty?: unknown; types?: unknown; count?: unknown; monsterPool?: unknown; maxNew?: unknown };
+  let body: { content?: unknown; difficulty?: unknown; types?: unknown; count?: unknown; monsterPool?: unknown; maxNew?: unknown; userId?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -131,6 +132,10 @@ export async function POST(req: Request) {
 ${material}
 </material>`;
 
+  // 데모 모드: 계정당 AI 호출 한도 (검증을 모두 통과한 요청만 1회로 센다)
+  const demo = await consumeDemoAi(body.userId);
+  if (demo.block) return demo.block;
+
   try {
     // 문제당 약 650토큰(서술형 모범 답안·추론 토큰 포함)을 여유 있게 잡고 상한 16000
     const text = await callLLM({ system: SYSTEM, user, maxTokens: Math.min(16000, 2000 + count * 650) });
@@ -141,6 +146,7 @@ ${material}
       .filter((q): q is Question => q !== null)
       .slice(0, count);
     if (questions.length === 0) {
+      await demo.refund();
       return Response.json({ error: "AI 응답에서 유효한 문제를 만들지 못했습니다. 다시 시도해 주세요." }, { status: 502 });
     }
 
@@ -159,6 +165,7 @@ ${material}
 
     return Response.json({ questions, truncated, newMonsterNames: newNames });
   } catch (e) {
+    await demo.refund(); // 실패한 호출은 횟수에서 빼 준다
     if (e instanceof LLMNotConfiguredError) return Response.json({ error: e.message }, { status: 503 });
     return Response.json({ error: `AI 문제 생성 실패: ${e instanceof Error ? e.message : String(e)}` }, { status: 502 });
   }

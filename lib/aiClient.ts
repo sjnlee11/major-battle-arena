@@ -1,7 +1,9 @@
 import type { Difficulty, QType, Question } from "./quiz";
+import { loadSession } from "./session";
 
 /** 상태 코드별 기본 안내 (서버가 error 문구를 주지 않았을 때) */
 function statusMessage(status: number): string {
+  if (status === 410) return "체험 기간이 종료되었습니다.";
   if (status === 429) return "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.";
   if (status === 503) return "AI 서비스가 아직 준비되지 않았습니다. (API 키 설정을 확인해 주세요)";
   if (status === 504 || status === 408) return "AI 응답이 너무 오래 걸립니다. 문제 수를 줄이거나 잠시 후 다시 시도해 주세요.";
@@ -20,7 +22,8 @@ async function post<T>(url: string, body: unknown, timeoutMs = 60_000): Promise<
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      // userId: 데모 배포에서 계정별 AI 호출 한도를 세는 데 쓰인다 (일반 실행에서는 서버가 무시)
+      body: JSON.stringify({ ...(body as object), userId: loadSession()?.id }),
       signal: ctrl.signal,
     });
     const data = await res.json().catch(() => ({}));
